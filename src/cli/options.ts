@@ -127,6 +127,7 @@ Commands:
   list                   List files and ingestion status
   status                 Show database status
   delete <path>          Delete ingested content
+  compact                Optimize the chunks table (prune stale fragments + old versions)
   skills install         Install Claude Code / Codex skills`
 
 // ============================================
