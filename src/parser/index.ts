@@ -22,7 +22,7 @@ import {
  * Exported so other modules (e.g. list_files) stay in sync automatically
  * when new formats are added here.
  */
-export const SUPPORTED_EXTENSIONS = new Set(['.pdf', '.docx', '.txt', '.md'])
+export const SUPPORTED_EXTENSIONS = new Set(['.pdf', '.docx', '.txt', '.md', '.mdx'])
 
 // ============================================
 // Type Definitions
@@ -193,6 +193,7 @@ export class DocumentParser {
       case '.txt':
         return await this.parseTxt(filePath)
       case '.md':
+      case '.mdx':
         return await this.parseMd(filePath)
       default:
         throw new ValidationError(`Unsupported file format: ${ext}`)
