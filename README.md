@@ -178,7 +178,12 @@ npx mcp-local-rag list                          # Show ingestion status
 npx mcp-local-rag status                        # Database stats
 npx mcp-local-rag delete ./docs/old.pdf         # Remove content
 npx mcp-local-rag delete --source "https://..."  # Remove by source URL
+npx mcp-local-rag compact                       # Prune stale fragments + old versions
 ```
+
+### When to run `compact`
+
+LanceDB writes a new index snapshot per ingest. Hundreds of ingests in a row can leave the on-disk footprint many times larger than the live data. Run `compact` after a bulk-ingest pass, or schedule it from a cron / git hook. Safe to run anytime — no-op if nothing to prune. Uses `DB_PATH` (same env var as the rest of the CLI).
 
 `query`, `read-neighbors`, `list`, `status`, and `delete` output JSON to stdout for piping (e.g., `| jq`). `ingest` outputs progress to stderr. Global options (`--db-path`, `--cache-dir`, `--model-name`) go before the subcommand. Run `npx mcp-local-rag --help` for details.
 
