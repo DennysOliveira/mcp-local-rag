@@ -1,8 +1,8 @@
 // RAGServer implementation with MCP tools
 
 import { randomUUID } from 'node:crypto'
-import { readdir, readFile, unlink } from 'node:fs/promises'
-import { extname, join, resolve, sep } from 'node:path'
+import { readFile, unlink } from 'node:fs/promises'
+import { resolve, sep } from 'node:path'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
@@ -17,6 +17,7 @@ import { Embedder } from '../embedder/index.js'
 import { parseHtml } from '../parser/html-parser.js'
 import { DocumentParser, SUPPORTED_EXTENSIONS } from '../parser/index.js'
 import { extractMarkdownTitle, extractTxtTitle } from '../parser/title-extractor.js'
+import { walkSupportedFiles } from '../utils/file-walker.js'
 import {
   type ContentFormat,
   extractSourceFromPath,
@@ -491,18 +492,14 @@ export class RAGServer {
       const ingested = await this.vectorStore.listFiles()
       const ingestedMap = new Map(ingested.map((f) => [f.filePath, f]))
 
-      // Scan BASE_DIR recursively for supported files.
-      // Errors propagate to the outer catch: if readdir fails, ingest_file and
+      // Scan BASE_DIR recursively for supported files, honoring .gitignore.
+      // Errors propagate to the outer catch: if the walk fails, ingest_file and
       // delete_file won't work either, so surfacing the error is appropriate.
-      const entries = await readdir(this.baseDir, { recursive: true, withFileTypes: true })
-      const baseDirFiles = entries
-        .filter((e) => e.isFile() && SUPPORTED_EXTENSIONS.has(extname(e.name).toLowerCase()))
-        .map((e) => {
-          const dir = e.parentPath
-          return join(dir, e.name)
-        })
-        .filter((filePath) => !this.excludePaths.some((ep) => filePath.startsWith(ep)))
-        .sort()
+      const baseDirFiles = await walkSupportedFiles({
+        baseDir: this.baseDir,
+        extensions: SUPPORTED_EXTENSIONS,
+        excludePaths: this.excludePaths,
+      })
 
       const baseDirSet = new Set(baseDirFiles)
 

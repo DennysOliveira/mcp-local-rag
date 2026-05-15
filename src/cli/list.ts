@@ -1,9 +1,9 @@
 // CLI list subcommand — list files and ingestion status
 
-import { readdir } from 'node:fs/promises'
-import { extname, join, resolve, sep } from 'node:path'
+import { resolve, sep } from 'node:path'
 
 import { SUPPORTED_EXTENSIONS } from '../parser/index.js'
+import { walkSupportedFiles } from '../utils/file-walker.js'
 import { extractSourceFromPath, isRawDataPath } from '../utils/raw-data-utils.js'
 import { createVectorStore } from './common.js'
 import type { GlobalOptions } from './options.js'
@@ -154,16 +154,12 @@ export async function runList(args: string[], globalOptions: GlobalOptions = {})
     const ingested = await vectorStore.listFiles()
     const ingestedMap = new Map(ingested.map((f) => [f.filePath, f]))
 
-    // Scan baseDir recursively for supported files
-    const entries = await readdir(baseDir, { recursive: true, withFileTypes: true })
-    const baseDirFiles = entries
-      .filter((e) => e.isFile() && SUPPORTED_EXTENSIONS.has(extname(e.name).toLowerCase()))
-      .map((e) => {
-        const dir = e.parentPath
-        return join(dir, e.name)
-      })
-      .filter((filePath) => !excludePaths.some((ep) => filePath.startsWith(ep)))
-      .sort()
+    // Scan baseDir recursively for supported files, honoring .gitignore.
+    const baseDirFiles = await walkSupportedFiles({
+      baseDir,
+      extensions: SUPPORTED_EXTENSIONS,
+      excludePaths,
+    })
 
     const baseDirSet = new Set(baseDirFiles)
 

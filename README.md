@@ -166,6 +166,10 @@ Pass the `filePath` and `chunkIndex` from the search result. The response includ
 "Show RAG server status"           # Check system health
 ```
 
+#### `.gitignore`-aware file listing (fork-specific)
+
+The `list_files` MCP tool and `list` CLI subcommand respect `BASE_DIR/.gitignore` in this fork. Patterns are read at runtime (toggling rules requires no rebuild); `.git/` is always excluded. Absent `.gitignore` is a graceful no-op. Upstream walks `BASE_DIR` blindly. `ingest`, `query`, and `read-neighbors` are unaffected.
+
 ### Using as CLI
 
 All MCP tools are also available as CLI commands — no MCP server needed:
