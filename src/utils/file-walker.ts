@@ -3,7 +3,8 @@
 // Walks BASE_DIR recursively for files matching a given extension set, then filters by:
 //   1. Explicit excludePaths (absolute prefixes — typically DB and model cache dirs)
 //   2. BASE_DIR/.gitignore patterns (read at runtime; graceful no-op when absent)
-//   3. .git/ (always excluded as a baseline)
+//   3. BASE_DIR/.ragignore patterns (additive layer for keep-in-git but exclude-from-RAG)
+//   4. .git/ (always excluded as a baseline)
 //
 // Returns sorted absolute paths. Single source of truth so the MCP tool and CLI
 // stay in sync as ignore semantics evolve.
@@ -29,13 +30,20 @@ export async function walkSupportedFiles(opts: WalkOptions): Promise<string[]> {
   const baseDir = resolve(opts.baseDir)
   const { extensions, excludePaths } = opts
 
-  // Build the ignore matcher. .git/ is always excluded; .gitignore augments it.
+  // Build the ignore matcher. .git/ is always excluded; .gitignore and
+  // .ragignore both augment it additively (a file matching either is excluded).
   const patterns: string[] = ['.git/']
   try {
     const content = await readFile(join(baseDir, '.gitignore'), 'utf-8')
     for (const line of content.split(/\r?\n/)) patterns.push(line)
   } catch {
     // No .gitignore — proceed with the .git/ baseline only.
+  }
+  try {
+    const content = await readFile(join(baseDir, '.ragignore'), 'utf-8')
+    for (const line of content.split(/\r?\n/)) patterns.push(line)
+  } catch {
+    // No .ragignore — proceed without the additive layer.
   }
   const ig = ignore().add(patterns)
 
